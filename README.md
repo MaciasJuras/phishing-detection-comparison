@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Phishing Detection
 
 A machine learning project for detecting phishing emails using multiple detection approaches.
@@ -53,3 +54,6 @@ phishing-detection/
 
 Results will be saved in the `results/` directory.
 
+=======
+# phishing-detection-comparison
+>>>>>>> e0283bf2cc042285d24c304a2a3b2565cffa0f1c
