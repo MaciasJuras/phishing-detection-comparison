@@ -1,0 +1,82 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+*.egg-info/
+*.egg
+build/
+dist/
+
+# Virtual Environments
+env/
+ENV/
+
+# Python Type Checking
+.mypy_cache/
+.pyre/
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Data (too large for GitHub)
+data/raw/
+data/processed/
+
+# Model Files & Weights
+*.pkl
+*.joblib
+*.pth
+*.pt
+weights/
+checkpoints/
+
+# HuggingFace & ML caches
+.cache/
+models/
+runs/
+mlruns/
+wandb/
+lightning_logs/
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# Environment Variables
+.env
+.env.local
+.env.*.local
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*.sublime-*
+
+# OS
+.DS_Store
+Thumbs.db
+*.lnk
+
+# Logs & Temporary Files
+*.log
+*.tmp
+*.bak
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Results (optional — keep or remove)
+# results/
+# *.csv
+# *.json
+# *.txt
+
+

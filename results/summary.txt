@@ -1,0 +1,2 @@
+  detector  accuracy  precision   recall       f1  true_neg  false_pos  false_neg  true_pos
+Rule-Based      0.62       0.75 0.038462 0.073171       121          1         75         3
