@@ -11,7 +11,7 @@ def main():
     _, test_df = load_dataset()
 
     # Optional: use a smaller slice for fast iteration during dev
-    test_df = test_df.sample(200, random_state=42).reset_index(drop=True)
+    #test_df = test_df.sample(200, random_state=42).reset_index(drop=True)
 
     texts = test_df["body"].tolist()
     y_true = test_df["label"].tolist()

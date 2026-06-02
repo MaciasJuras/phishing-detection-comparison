@@ -3,7 +3,6 @@ import ipaddress
 import re
 from urllib.parse import parse_qs, urlparse
 import tldextract
-
 from src.data.preprocessor import clean_text, extract_urls
 
 
@@ -58,6 +57,13 @@ class URLDetector:
         except ValueError:
             return False
 
+    @staticmethod
+    def _safe_port(parsed):
+        try:
+            return parsed.port
+        except ValueError:
+            return None
+
     def score_url(self, url: str) -> tuple[float, dict]:
         """Return URL score and fired feature flags."""
         features: dict[str, bool] = {}
@@ -93,7 +99,7 @@ class URLDetector:
         if features["http_not_https"]:
             score += 1.0
 
-        port = parsed.port
+        port = self._safe_port(parsed)
         features["suspicious_port"] = port is not None and port in SUSPICIOUS_PORTS
         if features["suspicious_port"]:
             score += 1.5
