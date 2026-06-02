@@ -30,7 +30,14 @@ def evaluate(name: str, y_true, y_pred) -> dict:
     print(f"  Confusion Matrix:")
     print(f"    TN={metrics['true_neg']}  FP={metrics['false_pos']}")
     print(f"    FN={metrics['false_neg']}  TP={metrics['true_pos']}")
-    print(classification_report(y_true, y_pred, target_names=["Legitimate", "Phishing"]))
+    print(
+        classification_report(
+            y_true,
+            y_pred,
+            target_names=["Legitimate", "Phishing"],
+            zero_division=0,
+        )
+    )
     return metrics
 
 
