@@ -27,20 +27,24 @@ def main():
     rule_preds = rule_det.predict_batch(texts)
 
     print("\n[Main] Running HuggingFace detector...")
-    #hf_preds = hf_det.predict_batch(texts)
+    hf_preds = hf_det.predict_batch(texts)
 
     print("\n[Main] Running URL detector...")
-    #url_preds = url_det.predict_batch(texts)
+    url_preds = url_det.predict_batch(texts)
 
     print("\n[Main] Running Hybrid detector...")
-    #hybrid_preds = hybrid_det.predict_batch(texts)
+    hybrid_preds = hybrid_det.predict_batch(texts)
+
+    print("\n[Main] Running Strict Hybrid detector...")
+    strict_preds = hybrid_det.predict_strict_batch(texts)
 
     # ── Evaluate ───────────────────────────────────────────────────
     all_metrics = [
         evaluate("Rule-Based", y_true, rule_preds),
-        #evaluate("HuggingFace (BERT)", y_true, hf_preds),
-        #evaluate("URL Analyzer", y_true, url_preds),
-        #evaluate("Hybrid", y_true, hybrid_preds),
+        evaluate("HuggingFace (BERT)", y_true, hf_preds),
+        evaluate("URL Analyzer", y_true, url_preds),
+        evaluate("Hybrid", y_true, hybrid_preds),
+        evaluate("Strict Hybrid", y_true, strict_preds),
     ]
 
     # ── Save results ───────────────────────────────────────────────

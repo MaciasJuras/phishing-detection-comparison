@@ -1,2 +1,6 @@
-  detector  accuracy  precision   recall       f1  true_neg  false_pos  false_neg  true_pos
-Rule-Based      0.62       0.75 0.038462 0.073171       121          1         75         3
+          detector  accuracy  precision   recall       f1  true_neg  false_pos  false_neg  true_pos
+        Rule-Based      0.62       0.75 0.038462 0.073171       121          1         75         3
+HuggingFace (BERT)      0.98       1.00 0.948718 0.973684       122          0          4        74
+      URL Analyzer      0.47       0.15 0.076923 0.101695        88         34         72         6
+            Hybrid      0.98       1.00 0.948718 0.973684       122          0          4        74
+     Strict Hybrid      0.62       1.00 0.025641 0.050000       122          0         76         2

@@ -3,7 +3,14 @@ from sklearn.model_selection import train_test_split
 
 
 def load_dataset(path: str = "data/raw/Phishing_Email.csv"):
-    df = pd.read_csv(path)
+    if path == "data/raw/Phishing_Email.csv":
+        fallback_path = "data/raw/PhisingEmail.csv"
+        try:
+            df = pd.read_csv(path)
+        except FileNotFoundError:
+            df = pd.read_csv(fallback_path)
+    else:
+        df = pd.read_csv(path)
 
     # Rename to standard column names
     df = df.rename(columns={"Email Text": "body", "Email Type": "label"})
