@@ -8,11 +8,13 @@ class HybridDetector:
         url_detector,
         weights: tuple[float, float, float] = (0.25, 0.50, 0.25),
         threshold: float = 0.5,
+        strict_vote_threshold: float = 0.35,
         strategy: str = "weighted",
     ):
         self.detectors = [rule_detector, hf_detector, url_detector]
         self.weights = weights
         self.threshold = threshold
+        self.strict_vote_threshold = strict_vote_threshold
         self.strategy = strategy.lower().strip()
 
         if len(self.weights) != len(self.detectors):
@@ -48,13 +50,13 @@ class HybridDetector:
         if not scores:
             return 0.0
 
-        positive_votes = [score for score in scores if score >= self.threshold]
+        positive_votes = [score for score in scores if score >= self.strict_vote_threshold]
         if len(positive_votes) < 2:
             return 0.0
 
         positive_weights = [
             weight for weight, score in zip(self.normalized_weights, scores)
-            if score >= self.threshold
+            if score >= self.strict_vote_threshold
         ]
         total_weight = sum(positive_weights)
         if total_weight == 0:
@@ -63,7 +65,7 @@ class HybridDetector:
         return sum(
             weight * score
             for weight, score in zip(self.normalized_weights, scores)
-            if score >= self.threshold
+            if score >= self.strict_vote_threshold
         ) / total_weight
 
     def predict(self, text: str) -> int:

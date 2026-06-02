@@ -1,4 +1,10 @@
-from transformers import pipeline
+import os
+
+os.environ.setdefault("HF_HUB_OFFLINE", "1")
+os.environ.setdefault("TRANSFORMERS_OFFLINE", "1")
+os.environ.setdefault("HF_HUB_DISABLE_TELEMETRY", "1")
+
+from transformers import AutoModelForSequenceClassification, AutoTokenizer, pipeline
 from src.data.preprocessor import clean_text
 
 
@@ -12,15 +18,31 @@ class HuggingFaceDetector:
         model_name: str = MODEL_NAME,
         threshold: float = 0.5,
         max_length: int = MAX_LENGTH,
+        batch_size: int = 16,
+        local_files_only: bool = True,
     ):
         self.threshold = threshold
         self.max_length = max_length
+        self.batch_size = batch_size
+        self.local_files_only = local_files_only
 
         print(f"[HuggingFace] Loading model: {model_name} ...")
+        tokenizer = AutoTokenizer.from_pretrained(
+            model_name,
+            local_files_only=self.local_files_only,
+            use_fast=True,
+        )
+        model = AutoModelForSequenceClassification.from_pretrained(
+            model_name,
+            local_files_only=self.local_files_only,
+            use_safetensors=False,
+        )
         self.classifier = pipeline(
             "text-classification",
-            model=model_name,
+            model=model,
+            tokenizer=tokenizer,
             top_k=None,
+            local_files_only=self.local_files_only,
         )
         self.id2label = {
             int(k): str(v).lower()
@@ -80,18 +102,23 @@ class HuggingFaceDetector:
             cleaned,
             truncation=True,
             max_length=self.max_length,
+            batch_size=self.batch_size,
         )
         return self._phishing_probability(raw)
 
-    def predict(self, text: str) -> int:
-        return int(self.predict_proba(text) >= self.threshold)
-
-    def predict_batch(self, texts, batch_size: int = 16) -> list[int]:
+    def predict_proba_batch(self, texts, batch_size: int | None = None) -> list[float]:
         cleaned_texts = [clean_text(text) for text in texts]
         raw_outputs = self.classifier(
             cleaned_texts,
             truncation=True,
             max_length=self.max_length,
-            batch_size=batch_size,
+            batch_size=batch_size or self.batch_size,
         )
-        return [int(self._phishing_probability(output) >= self.threshold) for output in raw_outputs]
+        return [self._phishing_probability(output) for output in raw_outputs]
+
+    def predict(self, text: str) -> int:
+        return int(self.predict_proba(text) >= self.threshold)
+
+    def predict_batch(self, texts, batch_size: int = 16) -> list[int]:
+        probs = self.predict_proba_batch(texts, batch_size=batch_size)
+        return [int(prob >= self.threshold) for prob in probs]
