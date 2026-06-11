@@ -1,7 +1,5 @@
 import os
 
-os.environ.setdefault("HF_HUB_OFFLINE", "1")
-os.environ.setdefault("TRANSFORMERS_OFFLINE", "1")
 os.environ.setdefault("HF_HUB_DISABLE_TELEMETRY", "1")
 
 from transformers import AutoModelForSequenceClassification, AutoTokenizer, pipeline
@@ -19,7 +17,7 @@ class HuggingFaceDetector:
         threshold: float = 0.5,
         max_length: int = MAX_LENGTH,
         batch_size: int = 16,
-        local_files_only: bool = True,
+        local_files_only: bool = False,
     ):
         self.threshold = threshold
         self.max_length = max_length
@@ -27,15 +25,19 @@ class HuggingFaceDetector:
         self.local_files_only = local_files_only
 
         print(f"[HuggingFace] Loading model: {model_name} ...")
+        auth_token = os.environ.get("HUGGINGFACE_TOKEN") or os.environ.get("HF_TOKEN")
+        auth_kwargs = {"token": auth_token} if auth_token else {}
         tokenizer = AutoTokenizer.from_pretrained(
             model_name,
             local_files_only=self.local_files_only,
             use_fast=True,
+            **auth_kwargs,
         )
         model = AutoModelForSequenceClassification.from_pretrained(
             model_name,
             local_files_only=self.local_files_only,
             use_safetensors=False,
+            **auth_kwargs,
         )
         self.classifier = pipeline(
             "text-classification",

@@ -8,3 +8,5 @@ beautifulsoup4==4.14.3
 requests==2.34.2
 tqdm==4.67.3
 kaggle==2.1.2
+sentencepiece==0.1.99
+tiktoken==0.13.0

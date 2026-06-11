@@ -1,12 +1,11 @@
-<<<<<<< HEAD
-# Phishing Detection
+# phishing-detection-comparison
 
-A machine learning project for detecting phishing emails using multiple detection approaches.
+A machine learning project for detecting phishing emails across multiple detection approaches.
 
 ## Project Structure
 
 ```
-phishing-detection/
+phishing-detection-comparison/
 ├── data/
 │   ├── raw/                        # Original downloaded CSV
 │   └── processed/                  # Cleaned, split dataset
@@ -14,29 +13,41 @@ phishing-detection/
 │   ├── data/
 │   │   ├── __init__.py
 │   │   ├── loader.py               # Load & split dataset
-│   │   └── preprocessor.py        # Clean text, extract fields
+│   │   └── preprocessor.py         # Clean text, extract fields
 │   ├── detectors/
 │   │   ├── __init__.py
-│   │   ├── rule_based.py          # Detector 1
-│   │   ├── huggingface_detector.py # Detector 2
-│   │   ├── url_detector.py        # Detector 3
-│   │   └── hybrid_detector.py     # Detector 4
+│   │   ├── classical_ml.py         # Naive Bayes and Logistic Regression
+│   │   ├── distilbert_detector.py   # DistilBERT, DeBERTa, RoBERTa
+│   │   ├── huggingface_detector.py  # BERT-based transformer detector
+│   │   ├── rule_based.py           # Rule-based detector
+│   │   ├── url_detector.py         # URL analysis detector
+│   │   └── hybrid_detector.py      # Hybrid ensemble detector
 │   └── evaluation/
 │       ├── __init__.py
-│       └── evaluator.py           # Metrics, confusion matrix, report
+│       └── evaluator.py            # Metrics, confusion matrix, report
 ├── results/                        # CSV + TXT outputs saved here
 ├── main.py                         # Entry point — runs all detectors
 ├── requirements.txt
-├── .gitignore
 └── README.md
 ```
 
 ## Detectors
 
-1. **Rule-based Detector** - Traditional pattern matching approach
-2. **HuggingFace Detector** - Pre-trained transformers model
-3. **URL Detector** - Specialized URL analysis
-4. **Hybrid Detector** - Combination of multiple approaches
+1. **Rule-Based** - Traditional pattern matching approach
+2. **Naive Bayes** - Probabilistic text classification
+3. **Logistic Regression** - Linear classification on text features
+4. **HuggingFace (BERT)** - Pre-trained transformer model
+5. **DistilBERT** - Lightweight transformer model
+6. **DeBERTa** - Enhanced transformer architecture
+7. **RoBERTa** - Optimized BERT variant
+8. **URL Analyzer** - URL-specific phishing features
+9. **Hybrid** - Ensemble of rule-based, transformer, and URL signals
+10. **Strict Hybrid** - More conservative ensemble voting
+11. **Hybrid (Rule+URL)** - Rule and URL detector combination
+
+## Updated Results
+
+The latest evaluation results are saved in `results/summary.txt`. The current comparison contains accuracy, precision, recall, F1 score, and confusion matrix counts for all detectors.
 
 ## Getting Started
 
@@ -52,8 +63,5 @@ phishing-detection/
    python main.py
    ```
 
-Results will be saved in the `results/` directory.
+4. Review the output in `results/summary.txt`.
 
-=======
-# phishing-detection-comparison
->>>>>>> e0283bf2cc042285d24c304a2a3b2565cffa0f1c
