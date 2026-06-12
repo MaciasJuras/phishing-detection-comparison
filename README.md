@@ -1,6 +1,6 @@
 # phishing-detection-comparison
 
-A machine learning project for detecting phishing emails across multiple detection approaches.
+A phishing detecting project across multiple detection approaches.
 
 ## Project Structure
 
@@ -17,7 +17,7 @@ phishing-detection-comparison/
 │   ├── detectors/
 │   │   ├── __init__.py
 │   │   ├── classical_ml.py         # Naive Bayes and Logistic Regression
-│   │   ├── distilbert_detector.py   # DistilBERT, DeBERTa, RoBERTa
+│   │   ├── distilbert_detector.py   # DeBERTa
 │   │   ├── huggingface_detector.py  # BERT-based transformer detector
 │   │   ├── rule_based.py           # Rule-based detector
 │   │   ├── url_detector.py         # URL analysis detector
@@ -37,13 +37,11 @@ phishing-detection-comparison/
 2. **Naive Bayes** - Probabilistic text classification
 3. **Logistic Regression** - Linear classification on text features
 4. **HuggingFace (BERT)** - Pre-trained transformer model
-5. **DistilBERT** - Lightweight transformer model
-6. **DeBERTa** - Enhanced transformer architecture
-7. **RoBERTa** - Optimized BERT variant
-8. **URL Analyzer** - URL-specific phishing features
-9. **Hybrid** - Ensemble of rule-based, transformer, and URL signals
-10. **Strict Hybrid** - More conservative ensemble voting
-11. **Hybrid (Rule+URL)** - Rule and URL detector combination
+5. **DeBERTa** - Enhanced transformer architecture
+6. **URL Analyzer** - URL-specific phishing features
+7. **Hybrid** - Ensemble of rule-based, transformer, and URL signals
+8. **Strict Hybrid** - More conservative ensemble voting
+9. **Hybrid (Rule+URL)** - Rule and URL detector combination
 
 ## Updated Results
 
@@ -63,5 +61,11 @@ The latest evaluation results are saved in `results/summary.txt`. The current co
    python main.py
    ```
 
-4. Review the output in `results/summary.txt`.
+   To fine-tune DeBERTa separately and save it to `models/deberta-phishing`:
+   ```bash
+   python scripts/train_deberta.py
+   ```
 
+   Later runs of `python main.py` load `models/deberta-phishing` automatically.
+
+4. Review the output in `results/summary.txt`.

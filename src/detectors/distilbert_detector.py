@@ -2,6 +2,7 @@ import os
 
 # Do not force offline mode here; allow environment to control HF connectivity.
 os.environ.setdefault("HF_HUB_DISABLE_TELEMETRY", "1")
+os.environ.setdefault("PYTORCH_ENABLE_MPS_FALLBACK", "1")
 
 import torch
 from torch.optim import AdamW
@@ -11,10 +12,16 @@ from transformers import (
     AutoTokenizer,
     pipeline,
 )
+from transformers.utils import logging as hf_logging
 from src.data.preprocessor import clean_text
 
 
-DEFAULT_DISTILBERT_MODEL = "distilbert-base-uncased-finetuned-sst-2-english"
+BASE_DEBERTA_MODEL = "microsoft/deberta-v3-small"
+BINARY_LABEL_CONFIG = {
+    "num_labels": 2,
+    "id2label": {0: "benign", 1: "phishing"},
+    "label2id": {"benign": 0, "phishing": 1},
+}
 
 
 class TextClassificationDataset(Dataset):
@@ -50,6 +57,11 @@ def default_collate(batch, tokenizer):
     return batch_data
 
 
+def freeze_base_model(model):
+    for name, param in model.named_parameters():
+        param.requires_grad = not name.startswith("deberta.")
+
+
 class HFTransformerDetector:
     """Generic HF text classifier wrapper for transformer-based models."""
 
@@ -70,6 +82,11 @@ class HFTransformerDetector:
         self.local_files_only = local_files_only
 
         print(f"[{self.detector_label}] Loading model: {model_name} ...")
+        if self._uses_base_checkpoint():
+            print(
+                f"[{self.detector_label}] Base checkpoint detected; "
+                "the classification head must be fine-tuned before evaluation."
+            )
         auth_token = os.environ.get("HUGGINGFACE_TOKEN") or os.environ.get("HF_TOKEN")
         auth_kwargs = {"token": auth_token} if auth_token else {}
         self.tokenizer = AutoTokenizer.from_pretrained(
@@ -78,12 +95,25 @@ class HFTransformerDetector:
             use_fast=True,
             **auth_kwargs,
         )
-        self.model = AutoModelForSequenceClassification.from_pretrained(
-            model_name,
-            local_files_only=self.local_files_only,
-            use_safetensors=False,
+
+        model_kwargs = {
+            "local_files_only": self.local_files_only,
+            "dtype": torch.float32,
             **auth_kwargs,
-        )
+        }
+        if self._uses_base_checkpoint():
+            model_kwargs.update(BINARY_LABEL_CONFIG)
+
+        previous_verbosity = hf_logging.get_verbosity()
+        if self._uses_base_checkpoint():
+            hf_logging.set_verbosity_error()
+        try:
+            self.model = AutoModelForSequenceClassification.from_pretrained(
+                model_name,
+                **model_kwargs,
+            )
+        finally:
+            hf_logging.set_verbosity(previous_verbosity)
 
         self.classifier = pipeline(
             "text-classification",
@@ -95,6 +125,17 @@ class HFTransformerDetector:
         self.label_map = self._build_label_map(self.model.config)
         print(f"[{self.detector_label}] Model loaded.")
 
+    def _uses_base_checkpoint(self) -> bool:
+        return self.model_name == BASE_DEBERTA_MODEL
+
+    @staticmethod
+    def best_training_device() -> str:
+        if torch.cuda.is_available():
+            return "cuda"
+        if getattr(torch.backends, "mps", None) is not None and torch.backends.mps.is_available():
+            return "mps"
+        return "cpu"
+
     @staticmethod
     def _build_label_map(config):
         id2label = getattr(config, "id2label", {}) or {}
@@ -104,12 +145,24 @@ class HFTransformerDetector:
     def _clean_text(text: str) -> str:
         return clean_text(text)
 
-    def _get_phishing_probability(self, output) -> float:
+    @staticmethod
+    def _collect_scores(output) -> list[dict]:
         if isinstance(output, dict):
-            output = [output]
+            return [output]
+        if isinstance(output, list):
+            scores = []
+            for item in output:
+                scores.extend(HFTransformerDetector._collect_scores(item))
+            return scores
+        return []
+
+    def _get_phishing_probability(self, output) -> float:
+        scores = self._collect_scores(output)
+        if not scores:
+            return 0.0
 
         best_score = 0.0
-        for item in output:
+        for item in scores:
             label = str(item.get("label", "")).lower()
             score = float(item.get("score", 0.0))
             best_score = max(best_score, score)
@@ -159,6 +212,7 @@ class HFTransformerDetector:
         lr: float = 2e-5,
         device: str | None = None,
         sample_size: int | None = None,
+        freeze_base: bool = False,
     ):
         device_name = device if device is not None else ("cuda" if torch.cuda.is_available() else "cpu")
         device_obj = torch.device(device_name)
@@ -179,7 +233,11 @@ class HFTransformerDetector:
 
         self.model.to(device_obj)
         self.model.train()
-        optimizer = AdamW(self.model.parameters(), lr=lr)
+        if freeze_base:
+            freeze_base_model(self.model)
+            print(f"[{self.detector_label}] Frozen base encoder; training classification head only.")
+        trainable_params = [param for param in self.model.parameters() if param.requires_grad]
+        optimizer = AdamW(trainable_params, lr=lr)
 
         for epoch in range(epochs):
             epoch_loss = 0.0
@@ -187,6 +245,8 @@ class HFTransformerDetector:
                 batch = {k: v.to(device_obj) for k, v in batch.items()}
                 outputs = self.model(**batch)
                 loss = outputs.loss
+                if not torch.isfinite(loss):
+                    raise RuntimeError(f"Non-finite training loss: {loss.item()}")
                 loss.backward()
                 optimizer.step()
                 optimizer.zero_grad(set_to_none=True)
@@ -196,20 +256,13 @@ class HFTransformerDetector:
             print(f"[{self.detector_label}] Epoch {epoch + 1}/{epochs} avg loss: {epoch_loss / len(loader):.4f}")
 
         self.model.eval()
+        self.model.to("cpu")
 
-
-class DistilBERTDetector(HFTransformerDetector):
-    """DistilBERT-based text classifier using HuggingFace pipeline."""
-
-    def __init__(
-        self,
-        model_name: str = DEFAULT_DISTILBERT_MODEL,
-        threshold: float = 0.5,
-        max_length: int = 512,
-        batch_size: int = 16,
-        local_files_only: bool = False,
-    ):
-        super().__init__(model_name, "DistilBERT", threshold, max_length, batch_size, local_files_only)
+    def save(self, output_dir: str):
+        os.makedirs(output_dir, exist_ok=True)
+        self.model.save_pretrained(output_dir)
+        self.tokenizer.save_pretrained(output_dir)
+        print(f"[{self.detector_label}] Saved fine-tuned checkpoint to: {output_dir}")
 
 
 class DebertaDetector(HFTransformerDetector):
@@ -217,24 +270,10 @@ class DebertaDetector(HFTransformerDetector):
 
     def __init__(
         self,
-        model_name: str = "microsoft/deberta-v3-small",
+        model_name: str = BASE_DEBERTA_MODEL,
         threshold: float = 0.5,
         max_length: int = 512,
         batch_size: int = 16,
         local_files_only: bool = False,
     ):
         super().__init__(model_name, "DeBERTa", threshold, max_length, batch_size, local_files_only)
-
-
-class RobertaDetector(HFTransformerDetector):
-    """RoBERTa-based detector using a pretrained HuggingFace model."""
-
-    def __init__(
-        self,
-        model_name: str = "roberta-large-mnli",
-        threshold: float = 0.5,
-        max_length: int = 512,
-        batch_size: int = 16,
-        local_files_only: bool = False,
-    ):
-        super().__init__(model_name, "RoBERTa", threshold, max_length, batch_size, local_files_only)

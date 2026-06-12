@@ -1,9 +1,14 @@
 
+import os
 import ipaddress
 import re
 from urllib.parse import parse_qs, urlparse
 import tldextract
 from src.data.preprocessor import clean_text, extract_urls
+
+
+TLD_CACHE_DIR = os.path.join(os.getcwd(), ".cache", "tldextract")
+TLD_EXTRACTOR = tldextract.TLDExtract(cache_dir=TLD_CACHE_DIR, suffix_list_urls=())
 
 
 SUSPICIOUS_TLDS = {
@@ -175,7 +180,7 @@ class URLDetector:
 
         score = self._add_feature(features, "ip_as_hostname", self._is_ip_host(hostname), score)
 
-        ext = tldextract.extract(hostname)
+        ext = TLD_EXTRACTOR(hostname)
         full_domain = ".".join(p for p in [ext.subdomain, ext.domain, ext.suffix] if p)
         registered_domain = ".".join(p for p in [ext.domain, ext.suffix] if p)
 

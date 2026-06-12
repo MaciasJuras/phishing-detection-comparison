@@ -1,18 +1,21 @@
 class HybridDetector:
-    """Combine rule-based, HuggingFace, and URL detectors into one score."""
+    """Combine multiple detectors into one ensemble score."""
 
     def __init__(
         self,
-        rule_detector,
-        hf_detector,
-        url_detector,
-        weights: tuple[float, float, float] = (0.25, 0.50, 0.25),
+        *detectors,
+        weights: tuple[float, ...] | None = None,
         threshold: float = 0.5,
         strict_vote_threshold: float = 0.35,
         strategy: str = "weighted",
     ):
-        self.detectors = [rule_detector, hf_detector, url_detector]
-        self.weights = weights
+        self.detectors = list(detectors)
+        if not self.detectors:
+            raise ValueError("At least one detector is required")
+
+        self.weights = tuple(weights) if weights is not None else tuple(
+            1.0 / len(self.detectors) for _ in self.detectors
+        )
         self.threshold = threshold
         self.strict_vote_threshold = strict_vote_threshold
         self.strategy = strategy.lower().strip()
